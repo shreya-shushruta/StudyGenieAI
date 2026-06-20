@@ -1,24 +1,19 @@
 import streamlit as st
 import google.generativeai as genai
 from pypdf import PdfReader
-from dotenv import load_dotenv
-import os
 
-# Load environment variables
-load_dotenv()
-
-# Configure Gemini API
-genai.configure(api_key=os.getenv("GEMINI_API_KEY"))
-
-# Gemini Model
-model = genai.GenerativeModel("gemini-2.5-flash")
-
-# Page Config
+# Configure Page
 st.set_page_config(
     page_title="StudyGenie AI",
-    page_icon="📚",
+    page_icon="🎓",
     layout="centered"
 )
+
+# Gemini API Setup
+api_key = st.secrets["GEMINI_API_KEY"]
+genai.configure(api_key=api_key)
+
+model = genai.GenerativeModel("gemini-2.5-flash")
 
 # Header
 st.title("🎓 StudyGenie AI - Smart Exam Preparation Assistant")
@@ -37,13 +32,13 @@ st.markdown("""
 Upload your PDF notes and prepare smarter.
 """)
 
-# Upload PDF
+# PDF Upload
 uploaded_file = st.file_uploader(
     "📄 Upload PDF Notes",
     type=["pdf"]
 )
 
-# Extract Text Function
+# Extract PDF Text
 def extract_text(pdf):
     reader = PdfReader(pdf)
     text = ""
@@ -56,10 +51,13 @@ def extract_text(pdf):
 
     return text
 
-# Main App Logic
+
 if uploaded_file:
 
     text = extract_text(uploaded_file)
+
+    # Limit text size for faster Gemini responses
+    text = text[:10000]
 
     st.success("✅ PDF Uploaded Successfully")
 
@@ -81,14 +79,13 @@ if uploaded_file:
                 if option == "Summary":
 
                     prompt = f"""
-                    You are an expert teacher.
+                    Summarize these notes in less than 300 words.
 
-                    Summarize the following notes in simple student-friendly language.
+                    Include:
 
-                    Give:
                     1. Key Concepts
                     2. Important Points
-                    3. Exam Revision Notes
+                    3. Quick Revision Notes
 
                     Notes:
                     {text}
@@ -97,9 +94,7 @@ if uploaded_file:
                 elif option == "Important Questions":
 
                     prompt = f"""
-                    You are an experienced professor.
-
-                    Generate 15 important exam questions from these notes.
+                    Generate 15 important exam questions.
 
                     Include:
                     - Short Questions
@@ -113,7 +108,7 @@ if uploaded_file:
                 else:
 
                     prompt = f"""
-                    Generate 15 MCQs with answers from these notes.
+                    Generate 15 MCQs with answers.
 
                     Format:
 
@@ -132,9 +127,11 @@ if uploaded_file:
                 response = model.generate_content(prompt)
 
                 st.markdown("## 📌 Result")
+
                 st.write(response.text)
 
             except Exception as e:
+
                 st.error(f"Error: {e}")
 
 # Footer
